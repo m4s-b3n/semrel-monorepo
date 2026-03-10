@@ -1,0 +1,104 @@
+name: Semantic Release
+
+on:
+  workflow_call:
+    inputs:
+      directory:
+        required: true
+        type: string
+      dry-run:
+        required: false
+        type: boolean
+        default: false
+      semantic-release-version:
+        description: "semantic-release version to install (e.g. '25.0.3'). Uses latest if not set."
+        required: false
+        type: string
+        default: ""
+      local-plugins:
+        description: "Newline-separated list of npm packages to install in the working directory (for plugins resolved from cwd)"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      new_release_published:
+        value: ${{ jobs.semantic-release.outputs.new_release_published }}
+      new_release_version:
+        value: ${{ jobs.semantic-release.outputs.new_release_version }}
+      new_release_major_version:
+        value: ${{ jobs.semantic-release.outputs.new_release_major_version }}
+      new_release_minor_version:
+        value: ${{ jobs.semantic-release.outputs.new_release_minor_version }}
+      new_release_patch_version:
+        value: ${{ jobs.semantic-release.outputs.new_release_patch_version }}
+      new_release_channel:
+        value: ${{ jobs.semantic-release.outputs.new_release_channel }}
+      new_release_git_head:
+        value: ${{ jobs.semantic-release.outputs.new_release_git_head }}
+      new_release_git_tag:
+        value: ${{ jobs.semantic-release.outputs.new_release_git_tag }}
+      last_release_version:
+        value: ${{ jobs.semantic-release.outputs.last_release_version }}
+      last_release_git_head:
+        value: ${{ jobs.semantic-release.outputs.last_release_git_head }}
+      last_release_git_tag:
+        value: ${{ jobs.semantic-release.outputs.last_release_git_tag }}
+
+jobs:
+  semantic-release:
+    name: Semantic Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
+    outputs:
+      new_release_published: ${{ steps.semantic-release.outputs.new_release_published }}
+      new_release_version: ${{ steps.semantic-release.outputs.new_release_version }}
+      new_release_major_version: ${{ steps.semantic-release.outputs.new_release_major_version }}
+      new_release_minor_version: ${{ steps.semantic-release.outputs.new_release_minor_version }}
+      new_release_patch_version: ${{ steps.semantic-release.outputs.new_release_patch_version }}
+      new_release_channel: ${{ steps.semantic-release.outputs.new_release_channel }}
+      new_release_git_head: ${{ steps.semantic-release.outputs.new_release_git_head }}
+      new_release_git_tag: ${{ steps.semantic-release.outputs.new_release_git_tag }}
+      last_release_version: ${{ steps.semantic-release.outputs.last_release_version }}
+      last_release_git_head: ${{ steps.semantic-release.outputs.last_release_git_head }}
+      last_release_git_tag: ${{ steps.semantic-release.outputs.last_release_git_tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.ref }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Ensure package.json
+        if: inputs.local-plugins != ''
+        working-directory: ${{ inputs.directory }}
+        run: test -f package.json || echo "{\"private\":true,\"name\":\"$(basename $PWD)\"}" > package.json
+
+      - name: Cache local plugins
+        if: inputs.local-plugins != ''
+        id: cache-local-plugins
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: ${{ inputs.directory }}/node_modules
+          key: local-plugins-${{ inputs.directory }}-${{ inputs.local-plugins }}
+
+      - name: Install local plugins
+        if: inputs.local-plugins != '' && steps.cache-local-plugins.outputs.cache-hit != 'true'
+        working-directory: ${{ inputs.directory }}
+        run: |
+          PLUGINS=$(echo "${{ inputs.local-plugins }}" | tr '\n' ' ')
+          npm install --no-save --no-package-lock ${PLUGINS}
+
+      - name: Semantic Release
+        id: semantic-release
+        uses: cycjimmy/semantic-release-action@b12c8f6015dc215fe37bc154d4ad456dd3833c90 # v6.0.0
+        with:
+          working_directory: ${{ inputs.directory }}
+          dry_run: ${{ inputs.dry-run }}
+          semantic_version: ${{ inputs.semantic-release-version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

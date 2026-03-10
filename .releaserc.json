@@ -1,0 +1,39 @@
+{
+  "branches": ["main"],
+  "plugins": [
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        "preset": "conventionalcommits"
+      }
+    ],
+    "@semantic-release/release-notes-generator",
+    [
+      "@semantic-release/changelog",
+      {
+        "changelogFile": "CHANGELOG.md"
+      }
+    ],
+    [
+      "semantic-release-replace-plugin",
+      {
+        "replacements": [
+          {
+            "files": ["*.csproj"],
+            "from": "<VersionPrefix>.*</VersionPrefix>",
+            "to": "<VersionPrefix>${nextRelease.version}</VersionPrefix>",
+            "countMatches": true
+          }
+        ]
+      }
+    ],
+    [
+      "@semantic-release/git",
+      {
+        "assets": ["CHANGELOG.md", "*.csproj"],
+        "message": "chore(release): ${nextRelease.gitTag} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ],
+    "@semantic-release/github"
+  ]
+}
