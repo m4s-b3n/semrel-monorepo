@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <PackageId>SemrelMonorepo.Package.Alpha</PackageId>
+    <Description>Demo NuGet package Alpha released with semantic-release</Description>
+    <Authors>Demo</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/your-org/semrel-monorepo</RepositoryUrl>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <VersionPrefix>0.0.0</VersionPrefix>
+  </PropertyGroup>
+</Project>
