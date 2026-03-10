@@ -14,12 +14,10 @@ on:
         description: "semantic-release version to install (e.g. '25.0.3'). Uses latest if not set."
         required: false
         type: string
-        default: ""
       local-plugins:
         description: "Newline-separated list of npm packages to install in the working directory (for plugins resolved from cwd)"
         required: false
         type: string
-        default: ""
     outputs:
       new_release_published:
         value: ${{ jobs.semantic-release.outputs.new_release_published }}
@@ -69,7 +67,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
-          ref: ${{ github.ref }}
+          ref: ${{ inputs.dry-run && github.head_ref || github.ref }}
           fetch-depth: 0
           persist-credentials: false
 
@@ -100,7 +98,9 @@ jobs:
           working_directory: ${{ inputs.directory }}
           dry_run: ${{ inputs.dry-run }}
           ci: ${{ inputs.dry-run && 'false' || '' }}
-          branches: ${{ inputs.dry-run && format('["{0}", "main"]', github.head_ref || github.ref_name) || '' }}
+          branches: ${{ inputs.dry-run && format('["{0}", "{1}"]', github.base_ref || 'main', github.head_ref || github.ref_name) || '' }}
           semantic_version: ${{ inputs.semantic-release-version }}
+          unset_gha_env: ${{ github.event_name == 'pull_request' && inputs.dry-run && 'true' || '' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          #GITHUB_REF: ${{ inputs.dry-run && format('refs/heads/{0}', github.head_ref || github.ref_name) || github.ref }}
