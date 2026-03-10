@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  release:
+    name: Release
+    strategy:
+      fail-fast: true
+      max-parallel: 1
+      matrix:
+        package:
+          - src/Package.Alpha
+          - src/Package.Beta
+          - src/Package.Gamma
+    uses: ./.github/workflows/release-package.yml
+    with:
+      package: ${{ matrix.package }}
+      dry-run: ${{ github.event_name != 'push' }}
+      suffix: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || '' }}
+    secrets: inherit
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      packages: write
