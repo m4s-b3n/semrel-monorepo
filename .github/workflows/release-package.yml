@@ -1,0 +1,51 @@
+name: Release Package
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+      dry-run:
+        required: false
+        type: boolean
+        default: false
+      suffix:
+        required: false
+        type: string
+
+jobs:
+  build:
+    name: Build Package
+    uses: ./.github/workflows/build.yml
+    with:
+      package: ${{ inputs.package }}
+
+  semantic-release:
+    name: Release Package
+    needs: build
+    uses: ./.github/workflows/semantic-release.yml
+    with:
+      directory: ${{ inputs.package }}
+      dry-run: ${{ inputs.dry-run }}
+      local-plugins: |
+        @semantic-release/commit-analyzer@13.0.1
+        @semantic-release/release-notes-generator@14.1.0
+        @semantic-release/changelog@6.0.3
+        semantic-release-replace-plugin@1.2.7
+        @semantic-release/git@10.0.1
+        @semantic-release/github@11.0.6
+        conventional-changelog-conventionalcommits@9.3.0
+        semantic-release-monorepo@8.0.2
+    secrets: inherit
+
+  publish:
+    name: Publish Package
+    if: ${{ needs.semantic-release.outputs.new_release_published == 'true' }}
+    needs: semantic-release
+    uses: ./.github/workflows/publish.yml
+    with:
+      package: ${{ inputs.package }}
+      version: ${{ needs.semantic-release.outputs.new_release_version }}
+      suffix: ${{ inputs.suffix }}
+    secrets: inherit
