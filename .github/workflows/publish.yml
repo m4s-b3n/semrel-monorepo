@@ -1,0 +1,54 @@
+name: Publish
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+      version:
+        required: true
+        type: string
+      suffix:
+        required: false
+        type: string
+
+permissions: {}
+
+jobs:
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.ref }}
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@c2fa09f4bde5ebb9d1777cf28262a3eb3db3ced7 # v5.2.0
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Pack and publish
+        working-directory: ${{ inputs.package }}
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+          SUFFIX: ${{ inputs.suffix }}
+        run: |
+          if [ -n "$VERSION" ] && [ -n "$SUFFIX" ]; then
+            dotnet pack --configuration Release -p:VersionPrefix="${VERSION}" --version-suffix "${SUFFIX}" --output nupkgs
+          elif [ -n "$VERSION" ]; then
+            dotnet pack --configuration Release -p:VersionPrefix="${VERSION}" --output nupkgs
+          elif [ -n "$SUFFIX" ]; then
+            dotnet pack --configuration Release --version-suffix "${SUFFIX}" --output nupkgs
+          else
+            dotnet pack --configuration Release --output nupkgs
+          fi
+          dotnet nuget push nupkgs/*.nupkg --source github --skip-duplicate
